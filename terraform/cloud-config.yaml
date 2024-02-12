@@ -1,0 +1,21 @@
+#cloud-config
+
+write_files:
+- path: /etc/systemd/system/cloudservice.service
+  permissions: 0644
+  owner: root
+  content: |
+    [Unit]
+    Description=Start a simple docker container
+
+    [Service]
+    Environment="HOME=/home/cloudservice"
+    ExecStart=/usr/bin/docker run -d --name palworld-server -p 8211:8211/udp -p 27015:27015/udp -v $HOME/palworld:/palworld/ --env-file $HOME/.env --restart unless-stopped --stop-timeout 30 thijsvanloef/palworld-server-docker:latest
+    ExecStop=/usr/bin/docker stop palworld-server
+    ExecStopPost=/usr/bin/docker rm palworld-server
+
+runcmd:
+- systemctl daemon-reload
+- mkdir /home/cloudservice
+- docker run -v /tmp:/tmp google/cloud-sdk:slim gsutil cp gs://palworld-server-file/.env /home/cloudservice/.env
+- systemctl start cloudservice.service
